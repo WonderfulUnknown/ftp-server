@@ -6,6 +6,7 @@
 #include "ftp_server.h"
 #include "ftp_serverDlg.h"
 #include "afxdialogex.h"
+#include "User.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -51,6 +52,8 @@ END_MESSAGE_MAP()
 
 Cftp_serverDlg::Cftp_serverDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(IDD_FTP_SERVER_DIALOG, pParent)
+	, m_User(_T(""))
+	, m_Pwd(_T(""))
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -60,12 +63,15 @@ void Cftp_serverDlg::DoDataExchange(CDataExchange* pDX)
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_FileList, m_FileList);
 	DDX_Control(pDX, IDC_Log, m_Log);
+	DDX_Text(pDX, IDC_User, m_User);
+	DDX_Text(pDX, IDC_Pwd, m_Pwd);
 }
 
 BEGIN_MESSAGE_MAP(Cftp_serverDlg, CDialogEx)
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
+	ON_BN_CLICKED(IDC_Add, &Cftp_serverDlg::OnBnClickedAdd)
 END_MESSAGE_MAP()
 
 
@@ -118,7 +124,7 @@ BOOL Cftp_serverDlg::OnInitDialog()
 		}
 		//接受请求后，触发FD_ACCEPT事件，调用OnAccpet函数
 		else
-			log = L"SMTP服务器准备就绪";
+			log = _T("SMTP服务器准备就绪");
 	}
 	m_Log.AddString(log);
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
@@ -173,3 +179,17 @@ HCURSOR Cftp_serverDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
+
+
+void Cftp_serverDlg::OnBnClickedAdd()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	//获取对话框输入
+	UpdateData(TRUE);
+	if(m_User.IsEmpty())
+		AfxMessageBox(L"请输入用户名！", MB_ICONSTOP);
+	else if(m_Pwd.IsEmpty())
+		AfxMessageBox(L"请输入密码！", MB_ICONSTOP);
+	else
+		user.AddUser(m_User,m_Pwd);
+}

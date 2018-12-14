@@ -5,6 +5,7 @@
 #pragma once
 #include "afxwin.h"
 #include "MySocket.h"
+#include "User.h"
 
 // Cftp_serverDlg ¶Ô»°¿ò
 class Cftp_serverDlg : public CDialogEx
@@ -34,6 +35,10 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	MySocket MySock;
+	User user;
 	CListBox m_FileList;
 	CListBox m_Log;
+	CString m_User;
+	CString m_Pwd;
+	afx_msg void OnBnClickedAdd();
 };
