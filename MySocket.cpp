@@ -16,30 +16,38 @@ MySocket::~MySocket()
 }
 
 
+//void MySocket::OnAccept(int nErrorCode)
+//{
+//	// TODO: 在此添加专用代码和/或调用基类
+//	Cftp_serverDlg *dlg = (Cftp_serverDlg*)AfxGetApp()->GetMainWnd();//主窗口指针对象
+//	MySocket *sock = new MySocket();
+//	if (Accept(*sock))
+//	{
+//		//msg = "220 ftp-server 192.168.100.99 is ready";
+//		//sock->Send(msg, strlen(msg), 0);
+//		log = L"UDP连接成功";
+//		//触发FD_READ事件，调用OnReceive函数
+//		AsyncSelect(FD_READ);
+//	}
+//	else
+//	{
+//		log = "UDP连接失败\r\n";
+//		sock->Close();
+//	}
+//	dlg->m_Log.AddString(log);
+//	CAsyncSocket::OnAccept(nErrorCode);
+//}
+
+
 //参数nErrorCode,函数调用时，MFC框架提供，表明套接字最新的状态
 //如果是0，函数正常执行，没有错误；非0，套接字对象出错
-void MySocket::OnAccept(int nErrorCode)
+void MySocket::OnSend(int nErrorCode)
 {
-	// TODO: 在此添加专用代码和/或调用基类
-	Cftp_serverDlg *dlg = (Cftp_serverDlg*)AfxGetApp()->GetMainWnd();//主窗口指针对象
-	MySocket *sock = new MySocket();
-	if (Accept(*sock))
-	{
-		//msg = "220 ftp-server 192.168.100.99 is ready";
-		//sock->Send(msg, strlen(msg), 0);
-		log = L"TCP连接成功";
-		//触发FD_READ事件，调用OnReceive函数
-		sock->AsyncSelect(FD_READ);
-	}
-	else
-	{
-		log = "TCP连接失败\r\n";
-		sock->Close();
-	}
-	dlg->m_Log.AddString(log);
-	CAsyncSocket::OnAccept(nErrorCode);
+	Send(msg, strlen(msg), 0);
+	//继续触发FD_READ事件,接收socket消息  
+	AsyncSelect(FD_READ);
+	CAsyncSocket::OnSend(nErrorCode);
 }
-
 
 void MySocket::OnClose(int nErrorCode)
 {
@@ -68,9 +76,9 @@ void MySocket::OnReceive(int nErrorCode)
 
 	if (length != SOCKET_ERROR)
 	{
-		if (receive.Left(4) == "USER" && receive.Mid(5) == "admin")//receive.Right(5)
+		if (receive.Left(4) == "USER" && receive.Mid(5) == "123")//receive.Right(5)
 			msg = "331 USER command is OK,require PASS";
-		else if (receive.Left(4) == "PASS")
+		else if (receive.Left(4) == "PASS" && receive.Mid(5) == "123")
 			msg = "230 USER log in successfully";
 		else if (receive.Left(4) == "QUIT")
 		{

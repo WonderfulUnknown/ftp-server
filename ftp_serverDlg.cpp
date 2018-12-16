@@ -6,7 +6,6 @@
 #include "ftp_server.h"
 #include "ftp_serverDlg.h"
 #include "afxdialogex.h"
-#include "User.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -20,12 +19,12 @@ class CAboutDlg : public CDialogEx
 public:
 	CAboutDlg();
 
-// 对话框数据
+	// 对话框数据
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_ABOUTBOX };
 #endif
 
-	protected:
+protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV 支持
 
 // 实现
@@ -109,22 +108,15 @@ BOOL Cftp_serverDlg::OnInitDialog()
 	// TODO: 在此添加额外的初始化代码
 	CString log;
 	//创建底层套接字句柄
-	if (!MySock.Create(21, SOCK_STREAM, FD_ACCEPT))
+	if (!MySock.Create(21, SOCK_DGRAM, FD_READ))
 	{
 		log = _T("创建Socket失败!");
 		MySock.Close();
 	}
 	else
 	{
-		//指定监听套接字对象等待队列最大请求个数
-		if (!MySock.Listen(5))
-		{
-			log = _T("SMTP服务器监听失败");
-			MySock.Close();
-		}
-		//接受请求后，触发FD_ACCEPT事件，调用OnAccpet函数
-		else
-			log = _T("SMTP服务器准备就绪");
+		//UDP不需要监听
+		log = _T("FTP服务器准备就绪");
 	}
 	m_Log.AddString(log);
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
@@ -186,10 +178,10 @@ void Cftp_serverDlg::OnBnClickedAdd()
 	// TODO: 在此添加控件通知处理程序代码
 	//获取对话框输入
 	UpdateData(TRUE);
-	if(m_User.IsEmpty())
+	if (m_User.IsEmpty())
 		AfxMessageBox(L"请输入用户名！", MB_ICONSTOP);
-	else if(m_Pwd.IsEmpty())
+	else if (m_Pwd.IsEmpty())
 		AfxMessageBox(L"请输入密码！", MB_ICONSTOP);
 	else
-		user.AddUser(m_User,m_Pwd);
+		user.AddUser(m_User, m_Pwd);
 }

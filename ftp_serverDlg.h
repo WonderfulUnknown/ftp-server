@@ -6,6 +6,10 @@
 #include "afxwin.h"
 #include "MySocket.h"
 #include "User.h"
+#include <winsock2.h> 
+#include "windows.h" 
+
+#pragma   comment(lib, "wsock32.lib") 
 
 // Cftp_serverDlg 对话框
 class Cftp_serverDlg : public CDialogEx
@@ -35,6 +39,8 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	MySocket MySock;
+	// 服务器套接字
+	SOCKET server;
 	User user;
 	CListBox m_FileList;
 	CListBox m_Log;
