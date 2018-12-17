@@ -1,13 +1,15 @@
 #include "stdafx.h"
-#include "MySocket.h"
 #include "ftp_server.h"
 #include "ftp_serverDlg.h"
+#include "User.h"
 
 using namespace std;
-
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
+User user;
 MySocket::MySocket()
 {
 	Quit = false;
+	If_Data = false;
 }
 
 
@@ -43,6 +45,10 @@ MySocket::~MySocket()
 //如果是0，函数正常执行，没有错误；非0，套接字对象出错
 void MySocket::OnSend(int nErrorCode)
 {
+	//绑定客户端的Ip和端口
+	Connect(client_ip, 21);
+	
+	//Connect()
 	Send(msg, strlen(msg), 0);
 	//继续触发FD_READ事件,接收socket消息  
 	AsyncSelect(FD_READ);
@@ -64,22 +70,50 @@ void MySocket::OnReceive(int nErrorCode)
 	memset(data, 0, sizeof(data));
 	//length存储返回收到消息的长度，接收到的数据存到data中
 	length = Receive(data, sizeof(data), 0);
+	
+	int addrlen = sizeof(client_addr);
+	//length = recvfrom((SOCKET)this, data, sizeof(data), 0, (SOCKADDR*)&client_addr, &addrlen);
+	//int error;
+	//error = WSAGetLastError();
+	//client_ip = inet_ntoa(client_addr.sin_addr);
+	//AfxMessageBox(client_ip, MB_ICONINFORMATION);
 
-	//将数据从等待队列读入缓存区，并且不将数据从缓冲区清除
-	//length = Receive(data, sizeof(data), MSG_PEEK);
-	//接受外带数据
-	//length = Receive(data, sizeof(data), MSG_OOB);
+	GetSockName((SOCKADDR*)&client_addr, &addrlen);
+	client_ip = inet_ntoa(client_addr.sin_addr);
+	AfxMessageBox(client_ip, MB_ICONINFORMATION);
+
+	//GetPeerName((SOCKADDR*)&client_addr, &addrlen);
+	//client_ip = inet_ntoa(client_addr.sin_addr);
+	//AfxMessageBox(client_ip, MB_ICONINFORMATION);
+	////getpeername((SOCKET)this,(struct sockaddr *)&client_addr, &addrlen);
+
+	////int error;
+	////if(getsockname((SOCKET)this, (struct sockaddr *)&client_addr, &addrlen)== SOCKET_ERROR)
+	////	error = WSAGetLastError();
+	////AfxMessageBox(client_ip, MB_ICONINFORMATION);
+
 	receive = data;
 	log = L"C:" + receive.Left(length);
-	dlg->m_FileList.AddString(log);
+	dlg->m_Log.AddString(log);
 	
-
 	if (length != SOCKET_ERROR)
 	{
-		if (receive.Left(4) == "USER" && receive.Mid(5) == "123")//receive.Right(5)
-			msg = "331 USER command is OK,require PASS";
-		else if (receive.Left(4) == "PASS" && receive.Mid(5) == "123")
-			msg = "230 USER log in successfully";
+		if (receive.Left(4) == "USER")
+		{
+			user_name = receive.Mid(5);
+			if (user.CheckUser(user_name).IsEmpty())
+				msg = "500 USER is not exist";
+			else 
+				msg = "331 USER command is OK,require PASS";
+		}
+		else if (receive.Left(4) == "PASS")
+		{
+			CString pwd = receive.Mid(5);
+			if (pwd == user.CheckUser(user_name))
+				msg = "230 USER log in successfully";
+			else
+				msg = "500 Pwd is not correct";
+		}
 		else if (receive.Left(4) == "QUIT")
 		{
 			msg = "GoodBye!";
@@ -92,8 +126,12 @@ void MySocket::OnReceive(int nErrorCode)
 		//els if (receive.Left(4) == "TYPE")
 		//else if (receive.Left(4) == "LIST")
 	}
+	else
+		msg = "500 Error: bad syntax";
+
+	AsyncSelect(FD_WRITE);
 	log = L"S:" + (CString)msg;
-	dlg->m_FileList.AddString(log);
+	dlg->m_Log.AddString(log);
 	if (Quit)//退出
 	{
 		MySocket sock;

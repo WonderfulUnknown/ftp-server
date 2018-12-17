@@ -38,13 +38,12 @@ protected:
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
 public:
-	MySocket MySock;
-	// ·þÎñÆ÷Ì×½Ó×Ö
-	SOCKET server;
+	MySocket socket;
 	User user;
 	CListBox m_FileList;
 	CListBox m_Log;
 	CString m_User;
 	CString m_Pwd;
 	afx_msg void OnBnClickedAdd();
+	afx_msg void OnBnClickedStart();
 };

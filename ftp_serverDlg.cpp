@@ -71,6 +71,7 @@ BEGIN_MESSAGE_MAP(Cftp_serverDlg, CDialogEx)
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
 	ON_BN_CLICKED(IDC_Add, &Cftp_serverDlg::OnBnClickedAdd)
+	ON_BN_CLICKED(IDC_Start, &Cftp_serverDlg::OnBnClickedStart)
 END_MESSAGE_MAP()
 
 
@@ -108,10 +109,10 @@ BOOL Cftp_serverDlg::OnInitDialog()
 	// TODO: 在此添加额外的初始化代码
 	CString log;
 	//创建底层套接字句柄
-	if (!MySock.Create(21, SOCK_DGRAM, FD_READ))
+	if (!socket.Create(21, SOCK_DGRAM, FD_READ))
 	{
 		log = _T("创建Socket失败!");
-		MySock.Close();
+		socket.Close();
 	}
 	else
 	{
@@ -184,4 +185,27 @@ void Cftp_serverDlg::OnBnClickedAdd()
 		AfxMessageBox(L"请输入密码！", MB_ICONSTOP);
 	else
 		user.AddUser(m_User, m_Pwd);
+}
+
+
+void Cftp_serverDlg::OnBnClickedStart()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	CString client_ip;//存储客户端地址
+	SOCKADDR_IN client_addr;//存储客户端地址
+	char data[98000];//接受数据的缓冲区
+	int addrlen = sizeof(client_addr);
+	int length;
+	while (1)
+	{
+
+		length = recvfrom((SOCKET)socket, data, sizeof(data), 0, (SOCKADDR*)&client_addr, &addrlen);
+		if (length > 0)
+		{
+
+			client_ip = inet_ntoa(client_addr.sin_addr);
+			AfxMessageBox(client_ip, MB_ICONINFORMATION);
+			break;
+		}
+	}
 }
