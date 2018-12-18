@@ -106,6 +106,8 @@ BOOL Cftp_serverDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
 	// TODO: 在此添加额外的初始化代码
+	user.GetList();//初始化文件列表
+
 	CString log;
 	//创建底层套接字句柄
 	if (!socket.Create(21, SOCK_DGRAM, FD_READ))

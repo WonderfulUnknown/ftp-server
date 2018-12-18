@@ -53,3 +53,149 @@ void User::AddUser(CString username, CString password)
 	file.Close();
 }
 
+// 获取共享目录
+void User::GetList(void)
+{
+	file.Open(L"List.txt", CFile::modeWrite | CFile::typeBinary | CFile::modeCreate);
+	WORD unicode = 0xFEFF; //文件采用Unicode格式
+	file.Write((void *)&unicode, sizeof(WORD));
+	AddFileFromFolder(L"List", &filename);
+	file.Close();
+	filename = filename.Left(filename.GetLength() - 1);
+	return;
+}
+
+// 从文件夹里添加文件名
+void User::AddFileFromFolder(CString strFolderPath, CString* recordstring)
+{
+	CString strMatch = strFolderPath + _T("\\*.*");
+	CString strFullName;
+	CString Name;
+	CFileFind finder;
+	CString out;
+	BOOL bWorking = finder.FindFile(strMatch);
+	while (bWorking)
+	{
+		bWorking = finder.FindNextFile();
+
+		if (finder.IsDots())
+			continue;
+
+		if (finder.IsDirectory())
+		{
+			AddFileFromFolder(strFolderPath + L"\\" + finder.GetFileName(), recordstring);
+		}
+		else
+		{
+			Name = finder.GetFileName();
+			strFullName = finder.GetFilePath();
+			*recordstring += Name + L",";
+			out = Name + L"," + strFullName + _T("\r\n");
+			file.Seek(0, CFile::end);
+			file.WriteString(out);
+			out.Empty();
+		}
+	}
+	finder.Close();
+}
+
+// 运用文件名从文件中获取文件路径
+CString User::GetFilePath(CString Name)
+{
+	file.Open(L"List.txt", CFile::modeRead | CFile::typeBinary);
+	WORD unicodeFlag = 0xFEFF; //文件采用Unicode格式
+	file.Read((void *)&unicodeFlag, sizeof(WORD));
+	CString filepath;
+	CString info;
+	while (file.ReadString(info))
+	{
+		CString temp_name = info.Left(info.Find(L","));
+		if (temp_name.Compare(Name) == 0)
+		{
+			filepath = info.Right(info.GetLength() - info.Find(L",") - 1) + L"\n";
+			break;
+		}
+	}
+	file.Close();
+	filepath = filepath.Left(filepath.Find(L"\r\n"));
+	return filepath;
+}
+
+
+////将文件内容读取并发送
+//void User::SendData(CString name, sockaddr_in addr_aim, SOCKET server)
+//{
+//	//restart_server(server);
+//	int timeout = 2000;      //设置超时时间为2s
+//	setsockopt(server, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(int));
+//	CString filepath = GetFilePath(name);
+//	packet send;   //要发送的结构
+//	packet recv;
+//	int num = 0;  //发送第几个数据包
+//	int len = sizeof(addr_aim);
+//	file.Open(filepath, CFile::modeRead | CFile::typeBinary);
+//	file.SeekToBegin();
+//	int length_packet = file.GetLength();
+//	send.data_len = file.Read(send.data, 1024);
+//	send.end = false;
+//	while (send.data_len)
+//	{
+//		send.packetid = num;
+//		sendto(server, (char*)&send, sizeof(send), 0, (sockaddr*)&addr_aim, sizeof(addr_aim));
+//		recvfrom(server, (char*)&recv, sizeof(recv), 0, (sockaddr*)&addr_aim, &len);
+//		if (recv.packetid == num + 1)         //如果发回来的数据包表明刚刚发送的数据包没有错误
+//		{
+//			num++;
+//			send.data_len = file.Read(send.data, 1024);
+//		}
+//	}
+//	send.end = true;
+//	sendto(server, (char*)&send, sizeof(send), 0, (sockaddr*)&addr_aim, sizeof(addr_aim));
+//	file.Close();
+//	timeout = 10000; //平时阻塞时间为10s
+//	setsockopt(server, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(int));
+//	return;
+//}
+
+//// 接收数据并写入文件
+//void User::RecvData(CString name, sockaddr_in addr_aim, SOCKET server)
+//{
+//	int timeout = 2000;      //设置超时时间为2s
+//	setsockopt(server, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(int));
+//	restart_server(server);
+//	CString filepath = L"list\\" + name;
+//	file.Open(filepath, CFile::modeCreate | CFile::modeWrite | CFile::typeBinary);       //创建并以二进制打开要下载的文件
+//	int len = sizeof(addr_aim);
+//	int num = 0;  //下一个要接受的数据包id
+//	bool end = false;
+//	packet send;
+//	packet recv;
+//	send.end = false;
+//	while (!end)
+//	{
+//		recvfrom(server, (char*)&recv, sizeof(recv), 0, (sockaddr*)&addr_aim, &len);
+//		if (recv.end == true)   //文件接收完成
+//		{
+//			end = true;
+//		}
+//		else
+//		{
+//			if (recv.packetid == num)
+//			{
+//				recv.data[recv.data_len] = '\0';
+//				file.SeekToEnd();
+//				file.Write(recv.data, recv.data_len);
+//				num++;
+//			}
+//			strcpy(send.data, "ACK");
+//			send.data_len = strlen(send.data);
+//			send.packetid = num;
+//			sendto(server, (char*)&send, sizeof(send), 0, (sockaddr*)&addr_aim, sizeof(addr_aim));
+//		}
+//	}
+//	file.Close();
+//	timeout = 10000; //平时阻塞时间为10s
+//	setsockopt(server, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(int));
+//	GetList();        //接受上传文件后重新获取目录
+//	return;
+//}

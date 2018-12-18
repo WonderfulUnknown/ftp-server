@@ -2,6 +2,7 @@
 #include "ftp_server.h"
 #include "ftp_serverDlg.h"
 #include "User.h"
+#include <atlconv.h>
 
 using namespace std;
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
@@ -16,9 +17,6 @@ MySocket::~MySocket()
 {
 }
 
-
-//参数nErrorCode,函数调用时，MFC框架提供，表明套接字最新的状态
-//如果是0，函数正常执行，没有错误；非0，套接字对象出错
 void MySocket::OnSend(int nErrorCode)
 {
 	//AfxMessageBox(client_ip, MB_ICONINFORMATION);
@@ -28,9 +26,14 @@ void MySocket::OnSend(int nErrorCode)
 	SendTo(msg, strlen(msg), client_port, client_ip, 0);
 	//继续触发FD_READ事件,接收socket消息  
 	AsyncSelect(FD_READ);
+	//while(AsyncSelect(FD_READ) != 0)
+	//while (!AsyncSelect(FD_READ))
+		//Sleep(10);
 	CAsyncSocket::OnSend(nErrorCode);
 }
 
+//参数nErrorCode,函数调用时，MFC框架提供，表明套接字最新的状态
+//如果是0，函数正常执行，没有错误；非0，套接字对象出错
 void MySocket::OnClose(int nErrorCode)
 {
 	// TODO: 在此添加专用代码和/或调用基类
@@ -60,7 +63,7 @@ void MySocket::OnReceive(int nErrorCode)
 			user_name = receive.Mid(5);
 			if (user.CheckUser(user_name).IsEmpty())
 				msg = "500 USER is not exist";
-			else 
+			else
 				msg = "331 USER command is OK,require PASS";
 		}
 		else if (receive.Left(4) == "PASS")
@@ -76,12 +79,13 @@ void MySocket::OnReceive(int nErrorCode)
 			msg = "GoodBye!";
 			Quit = TRUE;
 		}
+		else if (receive.Left(4) == "LIST")
+			SendList();
 		else
 			msg = "500 Error: bad syntax";
 		//else if (receive.Left(3) == "PWD")
 		//else if (receive.Left(4) == "PASV")
 		//els if (receive.Left(4) == "TYPE")
-		//else if (receive.Left(4) == "LIST")
 	}
 	else
 		msg = "500 Error: bad syntax";
@@ -98,4 +102,12 @@ void MySocket::OnReceive(int nErrorCode)
 	}
 
 	CAsyncSocket::OnReceive(nErrorCode);
+}
+
+// 向客户端发送目录
+void MySocket::SendList()
+{
+	USES_CONVERSION;
+	char* filelist = T2A(user.filename);
+	SendTo(filelist, strlen(filelist), client_port, client_ip, 0);
 }

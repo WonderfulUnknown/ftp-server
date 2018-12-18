@@ -18,8 +18,8 @@ public:
 	void AddFileFromFolder(CString strFolderPath, CString* recordstring);
 
 	// 运用文件名从文件中获取文件路径
-	//CString GetFilePath(CString Name);
+	CString GetFilePath(CString Name);
 	// 将文件内容读取并发送
-	//void SendData(CString name,sockaddr_in addr_aim,SOCKET server);
+	//svoid SendData(CString name,sockaddr_in addr_aim,SOCKET server);
 };
 

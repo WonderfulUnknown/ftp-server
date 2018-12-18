@@ -7,12 +7,13 @@ public:
 	MySocket();
 	~MySocket();
 
-	//void OnAccept(int nErrorCode);
 	void OnSend(int nErrorCode);
 	void OnClose(int nErrorCode);
 	void OnReceive(int nErrorCode);
-	
-//	User user;
+
+	void SendList();
+
+	//	User user;
 	CString user_name;
 	char data[98000];//接受数据的缓冲区
 	char *msg;//发送的数据
