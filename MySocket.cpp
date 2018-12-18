@@ -9,7 +9,6 @@ User user;
 MySocket::MySocket()
 {
 	Quit = false;
-	If_Data = false;
 }
 
 
@@ -18,38 +17,15 @@ MySocket::~MySocket()
 }
 
 
-//void MySocket::OnAccept(int nErrorCode)
-//{
-//	// TODO: 在此添加专用代码和/或调用基类
-//	Cftp_serverDlg *dlg = (Cftp_serverDlg*)AfxGetApp()->GetMainWnd();//主窗口指针对象
-//	MySocket *sock = new MySocket();
-//	if (Accept(*sock))
-//	{
-//		//msg = "220 ftp-server 192.168.100.99 is ready";
-//		//sock->Send(msg, strlen(msg), 0);
-//		log = L"UDP连接成功";
-//		//触发FD_READ事件，调用OnReceive函数
-//		AsyncSelect(FD_READ);
-//	}
-//	else
-//	{
-//		log = "UDP连接失败\r\n";
-//		sock->Close();
-//	}
-//	dlg->m_Log.AddString(log);
-//	CAsyncSocket::OnAccept(nErrorCode);
-//}
-
-
 //参数nErrorCode,函数调用时，MFC框架提供，表明套接字最新的状态
 //如果是0，函数正常执行，没有错误；非0，套接字对象出错
 void MySocket::OnSend(int nErrorCode)
 {
-	//绑定客户端的Ip和端口
-	Connect(client_ip, 21);
-	
-	//Connect()
-	Send(msg, strlen(msg), 0);
+	//AfxMessageBox(client_ip, MB_ICONINFORMATION);
+	//CString temp;
+	//temp.Format(_T("%d"), client_port);
+	//AfxMessageBox(temp, MB_ICONINFORMATION);
+	SendTo(msg, strlen(msg), client_port, client_ip, 0);
 	//继续触发FD_READ事件,接收socket消息  
 	AsyncSelect(FD_READ);
 	CAsyncSocket::OnSend(nErrorCode);
@@ -69,30 +45,11 @@ void MySocket::OnReceive(int nErrorCode)
 	//每次receive之前需要把缓冲区清零
 	memset(data, 0, sizeof(data));
 	//length存储返回收到消息的长度，接收到的数据存到data中
-	length = Receive(data, sizeof(data), 0);
-	
-	int addrlen = sizeof(client_addr);
-	//length = recvfrom((SOCKET)this, data, sizeof(data), 0, (SOCKADDR*)&client_addr, &addrlen);
-	//int error;
-	//error = WSAGetLastError();
-	//client_ip = inet_ntoa(client_addr.sin_addr);
-	//AfxMessageBox(client_ip, MB_ICONINFORMATION);
-
-	GetSockName((SOCKADDR*)&client_addr, &addrlen);
-	client_ip = inet_ntoa(client_addr.sin_addr);
-	AfxMessageBox(client_ip, MB_ICONINFORMATION);
-
-	//GetPeerName((SOCKADDR*)&client_addr, &addrlen);
-	//client_ip = inet_ntoa(client_addr.sin_addr);
-	//AfxMessageBox(client_ip, MB_ICONINFORMATION);
-	////getpeername((SOCKET)this,(struct sockaddr *)&client_addr, &addrlen);
-
-	////int error;
-	////if(getsockname((SOCKET)this, (struct sockaddr *)&client_addr, &addrlen)== SOCKET_ERROR)
-	////	error = WSAGetLastError();
-	////AfxMessageBox(client_ip, MB_ICONINFORMATION);
+	length = ReceiveFrom(data, sizeof(data), client_ip, client_port, 0);//客户端发送的端口是随机的
 
 	receive = data;
+	//AfxMessageBox(receive, MB_ICONINFORMATION);
+
 	log = L"C:" + receive.Left(length);
 	dlg->m_Log.AddString(log);
 	
@@ -110,7 +67,7 @@ void MySocket::OnReceive(int nErrorCode)
 		{
 			CString pwd = receive.Mid(5);
 			if (pwd == user.CheckUser(user_name))
-				msg = "230 USER log in successfully";
+				msg = "230 USER login successfully";
 			else
 				msg = "500 Pwd is not correct";
 		}

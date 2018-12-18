@@ -45,5 +45,4 @@ public:
 	CString m_User;
 	CString m_Pwd;
 	afx_msg void OnBnClickedAdd();
-	afx_msg void OnBnClickedStart();
 };
