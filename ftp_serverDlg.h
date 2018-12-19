@@ -44,5 +44,6 @@ public:
 	CListBox m_Log;
 	CString m_User;
 	CString m_Pwd;
+	char *filelist;
 	afx_msg void OnBnClickedAdd();
 };

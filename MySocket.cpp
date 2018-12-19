@@ -10,6 +10,8 @@ User user;
 MySocket::MySocket()
 {
 	IsLogin = FALSE;
+
+	IsData = FALSE;
 }
 
 
@@ -19,10 +21,6 @@ MySocket::~MySocket()
 
 void MySocket::OnSend(int nErrorCode)
 {
-	//AfxMessageBox(client_ip, MB_ICONINFORMATION);
-	//CString temp;
-	//temp.Format(_T("%d"), client_port);
-	//AfxMessageBox(temp, MB_ICONINFORMATION);
 	SendTo(msg, strlen(msg), client_port, client_ip, 0);
 	//继续触发FD_READ事件,接收socket消息  
 	AsyncSelect(FD_READ);
@@ -42,10 +40,17 @@ void MySocket::OnReceive(int nErrorCode)
 
 	receive = data;
 	//AfxMessageBox(receive, MB_ICONINFORMATION);
+	if (!IsData)
+	{
 
-	log = L"C:" + receive.Left(length);
-	dlg->m_Log.AddString(log);
-	
+		if (!receive.Left(length).IsEmpty() && receive.Left(3) != "ACK")
+		{
+
+			log = L"C:" + receive.Left(length);
+			dlg->m_Log.AddString(log);
+		}
+	}
+
 	if (length != SOCKET_ERROR)
 	{
 		if (receive.Left(4) == "USER")
@@ -73,9 +78,16 @@ void MySocket::OnReceive(int nErrorCode)
 			{
 				if (receive.Left(4) == "LIST")
 				{
+
+					dlg->m_FileList.ResetContent();//清空列表
+					user.filename = "";
 					user.GetList();//获取文件列表
 					USES_CONVERSION;
-					msg = T2A(user.filename);
+					//msg = T2A(user.filename);
+
+					msg = T2A(user.filename.GetBuffer(0));
+					user.filename.ReleaseBuffer();
+
 					CString List(msg);
 					int index = List.Find(L",");
 					while (index != -1)
@@ -86,65 +98,83 @@ void MySocket::OnReceive(int nErrorCode)
 					}
 					dlg->m_FileList.AddString(List);
 				}
+				else if (receive.Left(8) == "DOWNLOAD")
+				{
+					IsData = TRUE;
+					CString name(receive);
+					name = name.Right(name.GetLength() - name.Find(L":") - 1);
+					name = name.Left(name.Find(L"\r\n"));//取出文件名，不带回车换行
+					SendData(name);
+				}
 				else if (receive.Left(4) == "QUIT")
 					msg = "GoodBye!";
-				//else if (receive.Left(3) == "PWD")
-				//else if (receive.Left(4) == "PASV")
-				//els if (receive.Left(4) == "TYPE")
 			}
 			else
 				msg = "500 Error: login fail";
 		}
-	}
-	/*else
-		msg = "500 Error: bad syntax";*/
 
-	AsyncSelect(FD_WRITE);
-	log = L"S:" + (CString)msg;
-	dlg->m_Log.AddString(log);
+		if (!IsData)
+		{
+			if (strlen(msg) != 0 && msg != "ACK")
+			{
+				SendTo(msg, strlen(msg), client_port, client_ip, 0);
+				log = L"S:" + (CString)msg;
+				dlg->m_Log.AddString(log);
+			}
+		}
+
+		//AsyncSelect(FD_WRITE);
+	}
 	CAsyncSocket::OnReceive(nErrorCode);
 }
 
-//// 向客户端发送目录
-//void MySocket::SendList()
-//{
-//	USES_CONVERSION;
-//	char* filelist = T2A(user.filename);
-//	SendTo(filelist, strlen(filelist), client_port, client_ip, 0);
-//}
-
 //将文件内容读取并发送
-void MySocket::SendData(CString name, sockaddr_in addr_aim, SOCKET server)
+void MySocket::SendData(CString name)
 {
+	MySocket socket;
 	int timeout = 2000;      //设置超时时间为2s
-	setsockopt(server, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(int));
+	setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(int));
 	CString filepath = user.GetFilePath(name);
 	packet send;   //要发送的结构
 	packet recv;
 	int num = 0;  //发送第几个数据包
-	int len = sizeof(addr_aim);
 	file.Open(filepath, CFile::modeRead | CFile::typeBinary);
 	file.SeekToBegin();
-	int length_packet = file.GetLength();
 	send.length = file.Read(send.data, 1024);
+
 	send.end = false;
+	filepath;
+	//msg = "";
+	sockaddr_in addr_aim;
+	addr_aim.sin_family = AF_INET;
+	addr_aim.sin_port = client_port;
+	int len = sizeof(addr_aim);
 	while (send.length)
 	{
+		//msg = (char *)&send;
 		send.number = num;
-		sendto(server, (char*)&send, sizeof(send), 0, (sockaddr*)&addr_aim, sizeof(addr_aim));
-		recvfrom(server, (char*)&recv, sizeof(recv), 0, (sockaddr*)&addr_aim, &len);
+		//sendto(socket, (char*)&send, sizeof(send), 0, (sockaddr*)&addr_aim, sizeof(addr_aim));
+		msg = (char *)&send;
+		SendTo((char*)&send, sizeof(send), client_port, client_ip, 0);
+		Sleep(10);
+
+		//length = recvfrom(socket, (char*)&recv, sizeof(recv), 0, (sockaddr*)&addr_aim, &len);
+		length = ReceiveFrom((char*)&recv, sizeof(recv), client_ip, client_port, 0);
 		if (recv.number == num + 1)         //如果发回来的数据包表明刚刚发送的数据包没有错误
 		{
 			num++;
+			memset(send.data, 0, sizeof(send.data));
 			send.length = file.Read(send.data, 1024);
 		}
 	}
 	send.end = true;
-	sendto(server, (char*)&send, sizeof(send), 0, (sockaddr*)&addr_aim, sizeof(addr_aim));
+	IsData = FALSE;
+	//sendto(socket, (char*)&send, sizeof(send), 0, (sockaddr*)&addr_aim, sizeof(addr_aim));
+	SendTo((char*)&send, sizeof(send), client_port, client_ip, 0);
 	file.Close();
 	timeout = 10000; //平时阻塞时间为10s
-	setsockopt(server, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(int));
-	return;
+	setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(int));
+	//	return;
 }
 
 // 接收数据并写入文件

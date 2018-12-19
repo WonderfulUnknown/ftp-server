@@ -106,7 +106,18 @@ BOOL Cftp_serverDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
 	// TODO: 在此添加额外的初始化代码
-	//user.GetList();//初始化文件列表
+	user.GetList();//获取文件列表
+	USES_CONVERSION;
+	filelist = T2A(user.filename);
+	CString List(filelist);
+	int index = List.Find(L",");
+	while (index != -1)
+	{
+		m_FileList.AddString(List.Left(index));
+		List = List.Right(List.GetLength() - index - 1);
+		index = List.Find(L",");
+	}
+	m_FileList.AddString(List);
 
 	CString log;
 	//创建底层套接字句柄
@@ -115,11 +126,9 @@ BOOL Cftp_serverDlg::OnInitDialog()
 		log = _T("创建Socket失败!");
 		socket.Close();
 	}
+	//UDP不需要监听
 	else
-	{
-		//UDP不需要监听
 		log = _T("FTP服务器准备就绪");
-	}
 	m_Log.AddString(log);
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }

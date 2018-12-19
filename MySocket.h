@@ -13,7 +13,7 @@ public:
 	//// 向客户端发送目录
 	//void SendList();
 	// 将文件内容读取并发送
-	void SendData(CString name,sockaddr_in addr_aim,SOCKET server);
+	void SendData(CString name);
 	// 接收数据并写入文件
 	void RecvData(CString name, sockaddr_in addr_aim, SOCKET server);
 
@@ -31,7 +31,8 @@ public:
 	UINT client_port;//客户端端口
 	int addrlen;
 
-	bool IsError;//判断命令是否有错
+	bool IsData;//判断是否在传输数据
+	//bool IsError;//判断命令是否有错
 	bool IsLogin;//判断是否登录成功
 };
 
