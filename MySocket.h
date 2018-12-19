@@ -1,17 +1,23 @@
 #pragma once
 #include "afxsock.h"
-//#include "User.h"
 class MySocket :public CAsyncSocket
 {
 public:
 	MySocket();
 	~MySocket();
 
+	//void OnClose(int nErrorCode);
 	void OnSend(int nErrorCode);
-	void OnClose(int nErrorCode);
 	void OnReceive(int nErrorCode);
 
-	void SendList();
+	//// 向客户端发送目录
+	//void SendList();
+	// 将文件内容读取并发送
+	void SendData(CString name,sockaddr_in addr_aim,SOCKET server);
+	// 接收数据并写入文件
+	void RecvData(CString name, sockaddr_in addr_aim, SOCKET server);
+
+	CStdioFile file;
 
 	//	User user;
 	CString user_name;
@@ -25,7 +31,16 @@ public:
 	UINT client_port;//客户端端口
 	int addrlen;
 
-	bool Quit;//是否接受到quit命令
 	bool IsError;//判断命令是否有错
+	bool IsLogin;//判断是否登录成功
 };
 
+
+//发送文件时的数据结构
+struct packet
+{
+	char data[2048];//数据
+	int number;//包的号码
+	int length;//数据长度
+	bool end;//代表结束的数据包
+};

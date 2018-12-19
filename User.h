@@ -19,7 +19,5 @@ public:
 
 	// 运用文件名从文件中获取文件路径
 	CString GetFilePath(CString Name);
-	// 将文件内容读取并发送
-	//svoid SendData(CString name,sockaddr_in addr_aim,SOCKET server);
 };
 
