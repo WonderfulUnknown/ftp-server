@@ -10,16 +10,13 @@ public:
 	void OnSend(int nErrorCode);
 	void OnReceive(int nErrorCode);
 
-	//// 向客户端发送目录
-	//void SendList();
-	// 将文件内容读取并发送
-	void SendData(CString name);
-	// 接收数据并写入文件
-	void RecvData(CString name);
+	//发送文件
+	void SendFile(CString name);
+	// 接收文件
+	void RecvFile(CString name);
 
 	CStdioFile file;
 
-	//	User user;
 	CString user_name;
 	char data[98000];//接受数据的缓冲区
 	char *msg;//发送的数据
@@ -32,7 +29,6 @@ public:
 	int addrlen;
 
 	bool IsData;//判断是否在传输数据
-	//bool IsError;//判断命令是否有错
 	bool IsLogin;//判断是否登录成功
 };
 

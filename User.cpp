@@ -53,26 +53,22 @@ void User::AddUser(CString username, CString password)
 	file.Close();
 }
 
-// 获取共享目录
 void User::GetList(void)
 {
-	file.Open(L"List.txt", CFile::modeWrite | CFile::typeBinary | CFile::modeCreate);
+	file.Open(L"FileList.txt", CFile::modeWrite | CFile::typeBinary | CFile::modeCreate);
 	WORD unicode = 0xFEFF; //文件采用Unicode格式
 	file.Write((void *)&unicode, sizeof(WORD));
-	AddFileFromFolder(L"List", &filename);
+	AddFileName(L"File", &filename);
 	file.Close();
 	filename = filename.Left(filename.GetLength() - 1);
 	return;
 }
 
-// 从文件夹里添加文件名
-void User::AddFileFromFolder(CString strFolderPath, CString* recordstring)
+void User::AddFileName(CString strFolderPath, CString* recordstring)
 {
 	CString strMatch = strFolderPath + _T("\\*.*");
-	CString strFullName;
-	CString Name;
+	CString FullName, Name, out;
 	CFileFind finder;
-	CString out;
 	BOOL bWorking = finder.FindFile(strMatch);
 	while (bWorking)
 	{
@@ -80,17 +76,13 @@ void User::AddFileFromFolder(CString strFolderPath, CString* recordstring)
 
 		if (finder.IsDots())
 			continue;
-
+		//如果是目录，递归查找到目录里面的文件
 		if (finder.IsDirectory())
-		{
-			AddFileFromFolder(strFolderPath + L"\\" + finder.GetFileName(), recordstring);
-		}
+			AddFileName(strFolderPath + L"\\" + finder.GetFileName(), recordstring);
 		else
 		{
-			Name = finder.GetFileName();
-			strFullName = finder.GetFilePath();
-			*recordstring += Name + L",";
-			out = Name + L"," + strFullName + _T("\r\n");
+			*recordstring += finder.GetFileName() + L",";
+			out = finder.GetFileName() + L"," + finder.GetFilePath() + _T("\r\n");
 			file.Seek(0, CFile::end);
 			file.WriteString(out);
 			out.Empty();
@@ -99,18 +91,17 @@ void User::AddFileFromFolder(CString strFolderPath, CString* recordstring)
 	finder.Close();
 }
 
-// 运用文件名从文件中获取文件路径
 CString User::GetFilePath(CString Name)
 {
-	file.Open(L"List.txt", CFile::modeRead | CFile::typeBinary);
-	WORD unicodeFlag = 0xFEFF; //文件采用Unicode格式
-	file.Read((void *)&unicodeFlag, sizeof(WORD));
+	file.Open(L"FileList.txt", CFile::modeRead | CFile::typeBinary);
+	WORD unicode = 0xFEFF;//文件采用Unicode格式
+	file.Read((void *)&unicode, sizeof(WORD));
 	CString filepath;
 	CString info;
 	while (file.ReadString(info))
 	{
-		CString temp_name = info.Left(info.Find(L","));
-		if (temp_name.Compare(Name) == 0)
+		CString temp = info.Left(info.Find(L","));
+		if (temp.Compare(Name) == 0)
 		{
 			filepath = info.Right(info.GetLength() - info.Find(L",") - 1) + L"\n";
 			break;

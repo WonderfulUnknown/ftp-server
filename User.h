@@ -12,12 +12,12 @@ public:
 	CString path;//文件路径
 	CString filename;//共享目录下文件名
 
-	// 获取共享目录
+	//获取共享目录
 	void GetList();
-	// 从文件夹里添加文件名
-	void AddFileFromFolder(CString strFolderPath, CString* recordstring);
+	//添加文件名
+	void AddFileName(CString strFolderPath, CString* recordstring);
 
-	// 运用文件名从文件中获取文件路径
+	//获取文件路径
 	CString GetFilePath(CString Name);
 };
 
