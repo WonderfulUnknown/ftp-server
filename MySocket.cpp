@@ -106,6 +106,14 @@ void MySocket::OnReceive(int nErrorCode)
 					name = name.Left(name.Find(L"\r\n"));//取出文件名，不带回车换行
 					SendData(name);
 				}
+				else if (receive.Left(6) == "UPLOAD")
+				{
+					IsData = TRUE;
+					CString name(receive);
+					name = name.Right(name.GetLength() - name.Find(L":") - 1);
+					name = name.Left(name.Find(L"\r\n"));//取出文件名，不带回车换行
+					RecvData(name);
+				}
 				else if (receive.Left(4) == "QUIT")
 					msg = "GoodBye!";
 			}
@@ -143,12 +151,6 @@ void MySocket::SendData(CString name)
 	send.length = file.Read(send.data, 1024);
 
 	send.end = false;
-	filepath;
-	//msg = "";
-	sockaddr_in addr_aim;
-	addr_aim.sin_family = AF_INET;
-	addr_aim.sin_port = client_port;
-	int len = sizeof(addr_aim);
 	while (send.length)
 	{
 		//msg = (char *)&send;
@@ -178,26 +180,23 @@ void MySocket::SendData(CString name)
 }
 
 // 接收数据并写入文件
-void MySocket::RecvData(CString name, sockaddr_in addr_aim, SOCKET server)
+void MySocket::RecvData(CString name)
 {
+	MySocket socket;
 	int timeout = 2000;      //设置超时时间为2s
-	setsockopt(server, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(int));
+	setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(int));
 	//restart_server(server);
 	CString filepath = L"list\\" + name;
-	file.Open(filepath, CFile::modeCreate | CFile::modeWrite | CFile::typeBinary);       //创建并以二进制打开要下载的文件
-	int len = sizeof(addr_aim);
+	file.Open(filepath, CFile::modeCreate | CFile::modeWrite | CFile::typeBinary);
 	int num = 0;  //下一个要接受的数据包id
-	bool end = false;
 	packet send;
 	packet recv;
 	send.end = false;
-	while (!end)
+	while (1)
 	{
-		recvfrom(server, (char*)&recv, sizeof(recv), 0, (sockaddr*)&addr_aim, &len);
+		ReceiveFrom((char*)&recv, sizeof(recv), client_ip, client_port, 0);
 		if (recv.end == true)   //文件接收完成
-		{
-			end = true;
-		}
+			break;
 		else
 		{
 			if (recv.number == num)
@@ -210,12 +209,12 @@ void MySocket::RecvData(CString name, sockaddr_in addr_aim, SOCKET server)
 			strcpy(send.data, "ACK");
 			send.length = strlen(send.data);
 			send.number = num;
-			sendto(server, (char*)&send, sizeof(send), 0, (sockaddr*)&addr_aim, sizeof(addr_aim));
+			SendTo((char*)&send, sizeof(send), client_port, client_ip, 0);
 		}
 	}
 	file.Close();
 	timeout = 10000; //平时阻塞时间为10s
-	setsockopt(server, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(int));
+	setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(int));
 	user.GetList();        //接受上传文件后重新获取目录
 	return;
 }

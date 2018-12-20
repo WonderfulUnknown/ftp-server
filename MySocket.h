@@ -15,7 +15,7 @@ public:
 	// 将文件内容读取并发送
 	void SendData(CString name);
 	// 接收数据并写入文件
-	void RecvData(CString name, sockaddr_in addr_aim, SOCKET server);
+	void RecvData(CString name);
 
 	CStdioFile file;
 
