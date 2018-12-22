@@ -7,15 +7,26 @@
 using namespace std;
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 User user;
+
 MySocket::MySocket()
 {
 	IsLogin = FALSE;
-
 	IsData = FALSE;
+	memset(data, 0, sizeof(data));
 }
 
 
 MySocket::~MySocket()
+{
+}
+
+packet::packet()
+{
+	memset(data, 0, 1024);
+	end = FALSE;
+}
+
+packet::~packet()
 {
 }
 
@@ -52,7 +63,7 @@ void MySocket::OnReceive(int nErrorCode)
 	{
 		if (receive.Left(4) == "USER")
 		{
-			user_name = receive.Mid(5);
+			user_name = receive.Mid(5);//从0开始计数
 			if (user.CheckUser(user_name).IsEmpty())
 				msg = "500 USER is not exist";
 			else
@@ -94,21 +105,28 @@ void MySocket::OnReceive(int nErrorCode)
 				{
 					IsData = TRUE;
 					CString name(receive);
-					name = name.Right(name.GetLength() - name.Find(L":") - 1);
+					name = name.Mid(9);
 					SendFile(name);
 				}
 				else if (receive.Left(6) == "UPLOAD")
 				{
 					IsData = TRUE;
 					CString name(receive);
-					name = name.Right(name.GetLength() - name.Find(L":") - 1);
+					name = name.Mid(7);
 					RecvFile(name);
+				}
+				else if (receive.Left(6) == "DELETE")
+				{
+					CString name(receive);
+					name = name.Mid(7);
+					DelFile(name);
+					msg = "230 Delete successfully";
 				}
 				else if (receive.Left(4) == "QUIT")
 					msg = "GoodBye!";
 			}
 			else
-				msg = "500 Error: login fail";
+				msg = "500 Error: please login first";
 		}
 
 		if (!IsData)
@@ -126,72 +144,87 @@ void MySocket::OnReceive(int nErrorCode)
 	CAsyncSocket::OnReceive(nErrorCode);
 }
 
-//将文件内容读取并发送
 void MySocket::SendFile(CString name)
 {
-	MySocket socket;
-	CString filepath = user.GetFilePath(name);
-	packet send;
-	packet recv;
 	int num = 0;
+	packet send, recv;
+
+	CString filepath = user.GetFilePath(name);
 	file.Open(filepath, CFile::modeRead | CFile::typeBinary);
 	file.SeekToBegin();
 	send.length = file.Read(send.data, 1024);
 
-	send.end = false;
 	while (send.length)
 	{
-		send.number = num;;
-		msg = (char *)&send;
+		send.number = num;
 		SendTo((char*)&send, sizeof(send), client_port, client_ip, 0);
-		Sleep(10);
-		
-		length = ReceiveFrom((char*)&recv, sizeof(recv), client_ip, client_port, 0);
-		if (recv.number == num + 1)         //如果发回来的数据包表明刚刚发送的数据包没有错误
+		Sleep(1);
+
+		int length =  ReceiveFrom((char*)&recv, sizeof(recv), client_ip, client_port, 0);
+		if (length != SOCKET_ERROR)
 		{
-			num++;
-			memset(send.data, 0, sizeof(send.data));
-			send.length = file.Read(send.data, 1024);
+			if (recv.number == num + 1)
+			{
+				num++;
+
+				memset(send.data, 0, sizeof(send.data));
+				send.length = file.Read(send.data, 1024);
+			}
 		}
 	}
 	send.end = true;
-	IsData = FALSE;
+	//发送数据为空，标志结束的数据包
 	SendTo((char*)&send, sizeof(send), client_port, client_ip, 0);
 	file.Close();
+
+	IsData = FALSE;
+	msg = "";
+	return;
 }
 
-// 接收数据并写入文件
 void MySocket::RecvFile(CString name)
 {
-	MySocket socket;
+	int num = 0;
+	packet send, recv;
+
 	CString filepath = L"File\\" + name;
 	file.Open(filepath, CFile::modeCreate | CFile::modeWrite | CFile::typeBinary);
-	int num = 0;
-	packet send;
-	packet recv;
-	send.end = false;
+
+	//只发送ACK
+	send.length = 3;
+	strcpy_s(send.data, send.length + 1, "ACK");//安全函数
+	
 	while (1)
 	{
+		Sleep(1);
 		ReceiveFrom((char*)&recv, sizeof(recv), client_ip, client_port, 0);
-		if (recv.end == true)//文件接收完成
+
+		if (recv.end == true)//收到最后一个数据包
 			break;
-		else
+		if (recv.number == num)
 		{
-			if (recv.number == num)
-			{
-				recv.data[recv.length] = '\0';
-				file.SeekToEnd();
-				file.Write(recv.data, recv.length);
-				num++;
-			}
-			strcpy(send.data, "ACK");
-			send.length = strlen(send.data);
-			send.number = num;
-			SendTo((char*)&send, sizeof(send), client_port, client_ip, 0);
+			num++;
+
+			file.Seek(0, CFile::end);
+			file.Write(recv.data, recv.length);
 		}
+		//如果收到的数据号码不对，返回的数据number不变重复发送上一次的ACK
+		send.number = num;
+		SendTo((char*)&send, sizeof(send), client_port, client_ip, 0);
 	}
 	file.Close();
+
 	//文件上传后需要更新目录
+	user.GetList();
+	IsData = FALSE;
+	return;
+}
+
+void MySocket::DelFile(CString name)
+{
+	CString filepath = L"File\\" + name;
+	CFile::Remove(filepath);
+
 	user.GetList();
 	return;
 }

@@ -4,7 +4,6 @@
 
 User::User(void)
 {
-	path = L"User.txt";
 }
 
 
@@ -15,7 +14,7 @@ User::~User(void)
 CString User::CheckUser(CString username)
 {
 	CString Pwd = NULL;
-	if (file.Open(path, CFile::modeRead))
+	if (file.Open(L"User.txt", CFile::modeRead))
 	{
 		CString line;
 		while (file.ReadString(line))//读取一行
@@ -45,7 +44,7 @@ void User::AddUser(CString username, CString password)
 
 	//CFile::modeCreate 文件以创建形式打开(创建一个新的文件，老文件数据将会丢失，
 	//配合CFile::modeNoTruncate 一起使用，不会覆盖老文件)
-	file.Open(path, CFile::modeCreate | CFile::modeNoTruncate | CFile::modeWrite);
+	file.Open(L"User.txt", CFile::modeCreate | CFile::modeNoTruncate | CFile::modeWrite);
 	file.Seek(0, CFile::end);//指到文件底
 	CString content = L"User:" + username + L"Pwd:" + password + L"\n";
 	file.WriteString(content);
@@ -64,28 +63,29 @@ void User::GetList(void)
 	return;
 }
 
-void User::AddFileName(CString strFolderPath, CString* recordstring)
+void User::AddFileName(CString FilePath, CString* FileName)
 {
-	CString strMatch = strFolderPath + _T("\\*.*");
-	CString FullName, Name, out;
+	CString start = FilePath + _T("\\*.*");
+	CString FullName, Name, content;
 	CFileFind finder;
-	BOOL bWorking = finder.FindFile(strMatch);
-	while (bWorking)
+
+	BOOL exist = finder.FindFile(start);
+	while (exist)
 	{
-		bWorking = finder.FindNextFile();
+		exist = finder.FindNextFile();
 
 		if (finder.IsDots())
 			continue;
 		//如果是目录，递归查找到目录里面的文件
 		if (finder.IsDirectory())
-			AddFileName(strFolderPath + L"\\" + finder.GetFileName(), recordstring);
+			AddFileName(FilePath + L"\\" + finder.GetFileName(), FileName);
 		else
 		{
-			*recordstring += finder.GetFileName() + L",";
-			out = finder.GetFileName() + L"," + finder.GetFilePath() + _T("\r\n");
+			*FileName += finder.GetFileName() + L",";
+			content = finder.GetFileName() + L"," + finder.GetFilePath() + _T("\r\n");
 			file.Seek(0, CFile::end);
-			file.WriteString(out);
-			out.Empty();
+			file.WriteString(content);
+			content.Empty();//清空
 		}
 	}
 	finder.Close();
@@ -97,13 +97,13 @@ CString User::GetFilePath(CString Name)
 	WORD unicode = 0xFEFF;//文件采用Unicode格式
 	file.Read((void *)&unicode, sizeof(WORD));
 	CString filepath;
-	CString info;
-	while (file.ReadString(info))
+	CString line;
+	while (file.ReadString(line))//读取一行
 	{
-		CString temp = info.Left(info.Find(L","));
-		if (temp.Compare(Name) == 0)
+		CString temp = line.Left(line.Find(L","));
+		if (temp.Compare(Name) == 0)//相等
 		{
-			filepath = info.Right(info.GetLength() - info.Find(L",") - 1) + L"\n";
+			filepath = line.Right(line.GetLength() - line.Find(L",") - 1) + L"\n";
 			break;
 		}
 	}
